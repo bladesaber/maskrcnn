@@ -11,7 +11,7 @@ https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5
 
 mini sample for shape data set:  
 ground true image  
-![image](https://github.com/bladesaber/maskrcnn/tree/master/picture/img1.PNG)  
+![image](https://github.com/bladesaber/maskrcnn/blob/master/Picture/img1.PNG)  
   
 predict image  
-![image](https://github.com/bladesaber/maskrcnn/tree/master/picture/img2.PNG) 
+![image](https://github.com/bladesaber/maskrcnn/blob/master/Picture/img2.PNG) 
