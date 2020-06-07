@@ -15,8 +15,6 @@ import numpy as np
 # the configurations you need to change.
 
 class Config(object):
-    BACKBONE_STRIDES = [4, 8, 16, 32, 64]
-
     """Base configuration class. For custom configurations, create a
     sub-class that inherits from this one and override properties
     that need to be changed.
@@ -76,6 +74,8 @@ class Config(object):
 
     # Length of square anchor side in pixels
     RPN_ANCHOR_SCALES = (32, 64, 128, 256, 512)
+
+    BACKBONE_STRIDES = [4, 8, 16, 32, 64]
 
     # Ratios of anchors at each cell (width/height)
     # A value of 1 represents a square anchor, and 0.5 is a wide anchor
