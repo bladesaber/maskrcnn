@@ -235,9 +235,9 @@ class MaskRCNN():
                              name='mask_rcnn')
 
         # Add multi-GPU support.
-        if config.GPU_COUNT > 1:
-            from mrcnn.parallel_model import ParallelModel
-            model = ParallelModel(model, config.GPU_COUNT)
+        # if config.GPU_COUNT > 1:
+        #     from mrcnn.parallel_model import ParallelModel
+        #     model = ParallelModel(model, config.GPU_COUNT)
 
         return model
 
@@ -330,7 +330,7 @@ class MaskRCNN():
             keras.callbacks.TensorBoard(log_dir=self.log_dir,
                                         histogram_freq=0, write_graph=True, write_images=False),
             keras.callbacks.ModelCheckpoint(self.checkpoint_path,
-                                            verbose=0, save_weights_only=True),
+                                            verbose=0, save_weights_only=True, save_best_only=True, mode='min'),
         ]
 
         # Add custom callbacks to the list

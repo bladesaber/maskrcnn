@@ -2,24 +2,10 @@
 <project version="4">
   <component name="PublishConfigData">
     <serverData>
-      <paths name="root@hz-t2.matpool.com:26182">
+      <paths name="root@hz-t2.matpool.com:29566">
         <serverdata>
           <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="root@hz-t2.matpool.com:29101">
-        <serverdata>
-          <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="root@hz-t2.matpool.com:29241">
-        <serverdata>
-          <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/mnt/maskrcnn" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
