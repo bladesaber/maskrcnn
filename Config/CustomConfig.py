@@ -53,3 +53,31 @@ class BalloonConfig(Config):
 
     # Skip detections with < 90% confidence
     DETECTION_MIN_CONFIDENCE = 0.9
+
+class CaltechBirdsConfig(Config):
+    NAME = "bird"
+
+    IMAGES_PER_GPU = 2
+
+    NUM_CLASSES = 1 + 200
+
+    STEPS_PER_EPOCH = 500
+
+    IMAGE_MIN_DIM = 768
+    IMAGE_MAX_DIM = 960
+
+class HorseConfig(Config):
+    NAME = "horse"
+
+    IMAGES_PER_GPU = 2
+
+    NUM_CLASSES = 1 + 1  # Background + balloon
+
+    STEPS_PER_EPOCH = 250
+
+    DETECTION_MIN_CONFIDENCE = 0.7
+
+    IMAGE_MIN_DIM = 704
+    IMAGE_MAX_DIM = 704
+
+    RPN_ANCHOR_SCALES = (64, 128, 256, 384, 512)

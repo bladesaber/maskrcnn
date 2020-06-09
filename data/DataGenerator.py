@@ -1,6 +1,7 @@
 import numpy as np
 import logging
 import skimage
+import random
 from Utils.network_utils import compose_image_meta, compute_backbone_shapes
 from Utils.utils import resize_mask, resize_image, extract_bboxes, minimize_mask, generate_pyramid_anchors
 from model.Rpn import build_rpn_targets
@@ -196,6 +197,12 @@ def load_image_gt(dataset, config, image_id, augment=False, augmentation=None, u
         max_dim=config.IMAGE_MAX_DIM,
         mode=config.IMAGE_RESIZE_MODE)
     mask = resize_mask(mask, scale, padding, crop)
+
+    if augment:
+        logging.warning("'augment' is deprecated. Use 'augmentation' instead.")
+        if random.randint(0, 1):
+            image = np.fliplr(image)
+            mask = np.fliplr(mask)
 
     # Augmentation
     # This requires the imgaug lib (https://github.com/aleju/imgaug)

@@ -218,3 +218,170 @@ class BalloonDataset(Dataset):
         else:
             super(self.__class__, self).image_reference(image_id)
 
+import scipy.io as scio
+from tqdm import tqdm
+class CaltechBirdsDataset(Dataset):
+    def init_data(self):
+        from sklearn.model_selection import train_test_split
+
+        y = np.array(scio.loadmat(os.path.join('D:\\DataSet\\birds', 'imagelabels.mat'))['labels'][0])
+        x = np.array(os.listdir(os.path.join('D:\\DataSet\\birds', 'jpg')))
+
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, stratify=None)
+        assert len(x_train) == len(y_train)
+        assert len(x_test) == len(y_test)
+        print('train num:', len(x_train), ' test num:', len(x_test))
+        with open('D:\\DataSet\\birds\\train.txt', 'w') as f:
+            for i in range(len(x_train)):
+                f.write(x_train[i] + ' ' + str(y_train[i]) + '\n')
+
+        with open('D:\\DataSet\\birds\\test.txt', 'w') as f:
+            for i in range(len(x_test)):
+                f.write(x_test[i] + ' ' + str(y_test[i]) + '\n')
+
+    def load_birds(self, data_dir, subset):
+        assert subset in ["train", "val"]
+
+        categories = []
+        with open(os.path.join(data_dir, 'label.txt'), 'r') as f:
+            for line in f.readlines():
+                categories.append(line.replace('\n','').strip())
+
+        for i, category in enumerate(categories):
+            self.add_class("bird", i+1, category)
+
+        img_dir = os.path.join(data_dir, 'jpg')
+        gt_dir = os.path.join(data_dir, 'gt')
+
+        with open(os.path.join(data_dir, subset+'.txt')) as f:
+            for line in tqdm(f):
+                img_name, label = line.replace('\n','').strip().split(' ')
+                label = int(label)
+                image_path = os.path.join(img_dir, img_name)
+                image = skimage.io.imread(image_path)
+                height, width = image.shape[:2]
+
+                self.add_image(
+                    "bird",
+                    image_id=image_path,
+                    path=image_path,
+                    width=width, height=height,
+                    label=label,
+                    mask_path = os.path.join(gt_dir, img_name.replace('jpg','png'))
+                )
+
+    def load_mask(self, image_id):
+        image_info = self.image_info[image_id]
+        if image_info["source"] != "bird":
+            return super(self.__class__, self).load_mask(image_id)
+
+        info = self.image_info[image_id]
+        mask = skimage.io.imread(info['mask_path'])
+        mask = (mask/255.).astype(np.bool)
+        if len(mask.shape)==2:
+            mask = mask[:,:, np.newaxis]
+
+        class_id = np.ones([mask.shape[-1]], dtype=np.int32)
+        class_id *= np.array(info['label']).reshape(-1)
+        return mask, class_id
+
+    def image_reference(self, image_id):
+        """Return the path of the image."""
+        info = self.image_info[image_id]
+        if info["source"] == "bird":
+            return info["path"]
+        else:
+            super(self.__class__, self).image_reference(image_id)
+
+class HorseDataset(Dataset):
+    def init_data(self):
+
+        img_jpg = os.listdir('D:\\DataSet\\horse\\jpg')
+        img_gt =  os.listdir('D:\\DataSet\\horse\\gt')
+
+        assert img_jpg==img_gt
+        index = np.arange(0, len(img_jpg), 1)
+        np.random.shuffle(index)
+
+        train_num = int(len(index)*0.8)
+        train_index = index[: train_num]
+        val_index = index[train_num:]
+
+        with open('D:\\DataSet\\horse\\train.txt', 'w') as f:
+            for i in train_index:
+                f.write(img_jpg[i]+'\n')
+
+        with open('D:\\DataSet\\horse\\val.txt', 'w') as f:
+            for i in val_index:
+                f.write(img_jpg[i]+'\n')
+
+        print('train num:%d val num:%d'%(len(train_index), len(val_index)))
+
+    def load_horse(self, data_dir, subset):
+        assert subset in ["train", "val"]
+
+        self.add_class("horse", 1, "horse")
+
+        img_dir = os.path.join(data_dir, 'jpg')
+        gt_dir = os.path.join(data_dir, 'gt')
+
+        with open(os.path.join(data_dir, subset+'.txt')) as f:
+            for line in tqdm(f):
+                img_name = line.replace('\n','').strip()
+                image_path = os.path.join(img_dir, img_name)
+                image = skimage.io.imread(image_path)
+                height, width = image.shape[:2]
+
+                self.add_image(
+                    "horse",
+                    image_id=image_path,
+                    path=image_path,
+                    width=width, height=height,
+                    mask_path = os.path.join(gt_dir, img_name)
+                )
+
+    def load_mask(self, image_id):
+        image_info = self.image_info[image_id]
+        if image_info["source"] != "horse":
+            return super(self.__class__, self).load_mask(image_id)
+
+        info = self.image_info[image_id]
+        mask = skimage.io.imread(info['mask_path'])
+
+        mask[np.where(mask <= mask.mean())] = 0
+        mask[np.where(mask > mask.mean())] = 1
+
+        width, height = info['width'], info['height']
+        mask = cv2.resize(mask, (width, height))
+        mask[np.where(mask <= mask.mean())] = 0
+        mask[np.where(mask > mask.mean())] = 1
+
+        if len(mask.shape)==2:
+            mask = mask[:,:, np.newaxis]
+
+        return mask, np.ones([mask.shape[-1]], dtype=np.int32)
+
+    def image_reference(self, image_id):
+        """Return the path of the image."""
+        info = self.image_info[image_id]
+        if info["source"] == "horse":
+            return info["path"]
+        else:
+            super(self.__class__, self).image_reference(image_id)
+
+if __name__ == '__main__':
+    # dataset_train = CaltechBirdsDataset()
+    # dataset_train.load_birds('D:\DataSet\\birds')
+    # dataset_train.prepare()
+
+    import matplotlib.pyplot as plt
+
+    dataset_train = HorseDataset()
+    dataset_train.load_horse('D:\DataSet\\horse', 'train')
+    dataset_train.prepare()
+
+
+
+    pass
+
+

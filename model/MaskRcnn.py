@@ -15,6 +15,7 @@ from data.DataGenerator import data_generator, mold_image
 import multiprocessing
 import re
 import datetime
+from collections import OrderedDict
 
 class MaskRCNN():
     """Encapsulates the Mask RCNN model functionality.
@@ -329,8 +330,10 @@ class MaskRCNN():
         callbacks = [
             keras.callbacks.TensorBoard(log_dir=self.log_dir,
                                         histogram_freq=0, write_graph=True, write_images=False),
-            keras.callbacks.ModelCheckpoint(self.checkpoint_path,
-                                            verbose=0, save_weights_only=True, save_best_only=True, mode='min'),
+            # keras.callbacks.ModelCheckpoint(self.checkpoint_path,
+            #                                 verbose=0, save_weights_only=True, save_best_only=True, mode='min'),
+            # keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=10, verbose=0, mode='auto',
+            #                                   epsilon=0.0001, cooldown=0, min_lr=0)
         ]
 
         # Add custom callbacks to the list
@@ -373,6 +376,9 @@ class MaskRCNN():
         optimizer = keras.optimizers.SGD(
             lr=learning_rate, momentum=momentum,
             clipnorm=self.config.GRADIENT_CLIP_NORM)
+        # can not use adam
+        # optimizer = keras.optimizers.Adam(
+        #     lr=learning_rate, clipnorm=self.config.GRADIENT_CLIP_NORM)
         # Add Losses
         # First, clear previously set losses to avoid duplication
         self.keras_model._losses = []
@@ -741,14 +747,103 @@ class MaskRCNN():
 
         return boxes, class_ids, scores, full_masks
 
+    def ancestor(self, tensor, name, checked=None):
+        """Finds the ancestor of a TF tensor in the computation graph.
+        tensor: TensorFlow symbolic tensor.
+        name: Name of ancestor tensor to find
+        checked: For internal use. A list of tensors that were already
+                 searched to avoid loops in traversing the graph.
+        """
+        checked = checked if checked is not None else []
+        name_list = []
+        if checked is not None:
+            for checked_cell in checked:
+                name_list.append(checked_cell.name)
+
+        # Put a limit on how deep we go to avoid very long loops
+        if len(checked) > 500:
+            return None
+        # Convert name to a regex and allow matching a number prefix
+        # because Keras adds them automatically
+        if isinstance(name, str):
+            name = re.compile(name.replace("/", r"(\_\d+)*/"))
+
+        parents = tensor.op.inputs
+        for p in parents:
+
+            # if p in checked:
+            #     continue
+            if p.name in name_list:
+                continue
+
+            if bool(re.fullmatch(name, p.name)):
+                return p
+
+            checked.append(p)
+            name_list.append(p.name)
+
+            a = self.ancestor(p, name, checked)
+            if a is not None:
+                return a
+        return None
+
+    def run_graph(self, images, outputs, image_metas=None):
+        """Runs a sub-set of the computation graph that computes the given
+        outputs.
+
+        image_metas: If provided, the images are assumed to be already
+            molded (i.e. resized, padded, and normalized)
+
+        outputs: List of tuples (name, tensor) to compute. The tensors are
+            symbolic TensorFlow tensors and the names are for easy tracking.
+
+        Returns an ordered dict of results. Keys are the names received in the
+        input and values are Numpy arrays.
+        """
+        model = self.keras_model
+
+        # Organize desired outputs into an ordered dict
+        outputs = OrderedDict(outputs)
+        for o in outputs.values():
+            assert o is not None
+
+        # Build a Keras function to run parts of the computation graph
+        inputs = model.inputs
+        if model.uses_learning_phase and not isinstance(K.learning_phase(), int):
+            inputs += [K.learning_phase()]
+        kf = K.function(model.inputs, list(outputs.values()))
+
+        # Prepare inputs
+        if image_metas is None:
+            molded_images, image_metas, _ = self.mold_inputs(images)
+        else:
+            molded_images = images
+        image_shape = molded_images[0].shape
+        # Anchors
+        anchors = self.get_anchors(image_shape)
+        # Duplicate across the batch dimension because Keras requires it
+        # TODO: can this be optimized to avoid duplicating the anchors?
+        anchors = np.broadcast_to(anchors, (self.config.BATCH_SIZE,) + anchors.shape)
+        model_in = [molded_images, image_metas, anchors]
+
+        # Run inference
+        if model.uses_learning_phase and not isinstance(K.learning_phase(), int):
+            model_in.append(0.)
+        outputs_np = kf(model_in)
+
+        # Pack the generated Numpy arrays into a a dict and log the results.
+        outputs_np = OrderedDict([(k, v) for k, v in zip(outputs.keys(), outputs_np)])
+        for k, v in outputs_np.items():
+            log(k, v)
+        return outputs_np
+
 if __name__ == '__main__':
-    from data.CustomDataset import ShapesDataset
-    from Config.CustomConfig import ShapesConfig
-
-    config = ShapesConfig()
+    # from data.CustomDataset import ShapesDataset
+    # from Config.CustomConfig import ShapesConfig
+    #
+    # config = ShapesConfig()
     # config.display()
-
-    # training dataset
+    #
     # dataset_train = ShapesDataset()
     # dataset_train.load_shapes(500, config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1])
     # dataset_train.prepare()
@@ -765,4 +860,61 @@ if __name__ == '__main__':
     #             epochs=1,
     #             layers='heads')
 
-    model = MaskRCNN(mode="inference", config=config, model_dir='D:/coursera/maskrcnn/checkpoint')
+    # model = MaskRCNN(mode="inference", config=config, model_dir='D:/coursera/maskrcnn/checkpoint')
+    #
+    # for layer in model.keras_model.layers:
+    #     print(layer.name, layer.__class__.__name__)
+    #     if layer.__class__.__name__ == 'Model':
+    #         for i in layer.layers:
+    #             print(i.name)
+    #
+    # print(hasattr(model.keras_model, "inner_model"))
+
+    # import  re
+    # layer_names = ['rpn_conv_shared', 'rpn_class_raw', 'mrcnn112', 'bn22']
+    # for k in layer_names:
+    #     print(bool(re.fullmatch(r"(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)", k)))
+
+    from Config.CustomConfig import BalloonConfig
+    from data.DataGenerator import load_image_gt
+    from data.CustomDataset import BalloonDataset
+
+    BALLOON_DIR = 'D:\DataSet\\balloon'
+    dataset = BalloonDataset()
+    dataset.load_balloon(BALLOON_DIR, "val")
+    dataset.prepare()
+
+    config = BalloonConfig()
+    class InferenceConfig(config.__class__):
+        # Run detection on one image at a time
+        GPU_COUNT = 1
+        IMAGES_PER_GPU = 1
+
+    config = InferenceConfig()
+
+    ROOT_DIR = 'D:\\coursera\\maskrcnn'
+    MODEL_DIR = os.path.join(ROOT_DIR, "checkpoint")
+    model = MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)
+
+    pillar = model.keras_model.get_layer("ROI").output  # node to start searching from
+
+    # TF 1.4 and 1.9 introduce new versions of NMS. Search for all names to support TF 1.3~1.10
+    nms_node = model.ancestor(pillar, "ROI/rpn_non_max_suppression:0")
+    if nms_node is None:
+        nms_node = model.ancestor(pillar, "ROI/rpn_non_max_suppression/NonMaxSuppressionV2:0")
+    if nms_node is None:  # TF 1.9-1.10
+        nms_node = model.ancestor(pillar, "ROI/rpn_non_max_suppression/NonMaxSuppressionV3:0")
+
+    image_id = 0
+    image, image_meta, gt_class_id, gt_bbox, gt_mask = load_image_gt(dataset, config, image_id, use_mini_mask=False)
+
+    rpn = model.run_graph([image], [
+        ("rpn_class", model.keras_model.get_layer("rpn_class").output),
+        ("pre_nms_anchors", model.ancestor(pillar, "ROI/pre_nms_anchors:0")),
+        ("refined_anchors", model.ancestor(pillar, "ROI/refined_anchors:0")),
+        ("refined_anchors_clipped", model.ancestor(pillar, "ROI/refined_anchors_clipped:0")),
+        ("post_nms_anchor_ix", nms_node),
+        ("proposals", model.keras_model.get_layer("ROI").output),
+    ])
+
+    pass

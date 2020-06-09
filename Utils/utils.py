@@ -407,6 +407,10 @@ def unmold_mask(mask, bbox, image_shape):
     full_mask[y1:y2, x1:x2] = mask
     return full_mask
 
+def unmold_image(normalized_images, config):
+    """Takes a image normalized with mold() and returns the original."""
+    return (normalized_images + config.MEAN_PIXEL).astype(np.uint8)
+
 def non_max_suppression(boxes, scores, threshold):
     """Performs non-maximum suppression and returns indices of kept boxes.
     boxes: [N, (y1, x1, y2, x2)]. Notice that (y2, x2) lays outside the box.
@@ -442,3 +446,49 @@ def non_max_suppression(boxes, scores, threshold):
         ixs = np.delete(ixs, remove_ixs)
         ixs = np.delete(ixs, 0)
     return np.array(pick, dtype=np.int32)
+
+def parse_image_meta(meta):
+    """Parses an array that contains image attributes to its components.
+    See compose_image_meta() for more details.
+
+    meta: [batch, meta length] where meta length depends on NUM_CLASSES
+
+    Returns a dict of the parsed values.
+    """
+    image_id = meta[:, 0]
+    original_image_shape = meta[:, 1:4]
+    image_shape = meta[:, 4:7]
+    window = meta[:, 7:11]  # (y1, x1, y2, x2) window of image in in pixels
+    scale = meta[:, 11]
+    active_class_ids = meta[:, 12:]
+    return {
+        "image_id": image_id.astype(np.int32),
+        "original_image_shape": original_image_shape.astype(np.int32),
+        "image_shape": image_shape.astype(np.int32),
+        "window": window.astype(np.int32),
+        "scale": scale.astype(np.float32),
+        "active_class_ids": active_class_ids.astype(np.int32),
+    }
+
+def apply_box_deltas(boxes, deltas):
+    """Applies the given deltas to the given boxes.
+    boxes: [N, (y1, x1, y2, x2)]. Note that (y2, x2) is outside the box.
+    deltas: [N, (dy, dx, log(dh), log(dw))]
+    """
+    boxes = boxes.astype(np.float32)
+    # Convert to y, x, h, w
+    height = boxes[:, 2] - boxes[:, 0]
+    width = boxes[:, 3] - boxes[:, 1]
+    center_y = boxes[:, 0] + 0.5 * height
+    center_x = boxes[:, 1] + 0.5 * width
+    # Apply deltas
+    center_y += deltas[:, 0] * height
+    center_x += deltas[:, 1] * width
+    height *= np.exp(deltas[:, 2])
+    width *= np.exp(deltas[:, 3])
+    # Convert back to y1, x1, y2, x2
+    y1 = center_y - 0.5 * height
+    x1 = center_x - 0.5 * width
+    y2 = y1 + height
+    x2 = x1 + width
+    return np.stack([y1, x1, y2, x2], axis=1)
