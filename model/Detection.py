@@ -5,6 +5,9 @@ from Utils.network_utils import overlaps_graph, apply_box_deltas_graph, clip_box
     parse_image_meta_graph, norm_boxes_graph
 from Utils.utils import box_refinement_graph, resize, box_refinement, compute_iou
 
+'''
+adjust tensorflow version
+'''
 
 def trim_zeros_graph(boxes, name='trim_zeros'):
     """Often boxes are represented with matrices of shape [N, 4] and

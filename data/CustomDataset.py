@@ -227,6 +227,10 @@ class CaltechBirdsDataset(Dataset):
         y = np.array(scio.loadmat(os.path.join('D:\\DataSet\\birds', 'imagelabels.mat'))['labels'][0])
         x = np.array(os.listdir(os.path.join('D:\\DataSet\\birds', 'jpg')))
 
+        index = np.where(y<=2)
+        y = y[index]
+        x = x[index]
+
         x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, stratify=None)
         assert len(x_train) == len(y_train)
         assert len(x_test) == len(y_test)
@@ -235,7 +239,7 @@ class CaltechBirdsDataset(Dataset):
             for i in range(len(x_train)):
                 f.write(x_train[i] + ' ' + str(y_train[i]) + '\n')
 
-        with open('D:\\DataSet\\birds\\test.txt', 'w') as f:
+        with open('D:\\DataSet\\birds\\val.txt', 'w') as f:
             for i in range(len(x_test)):
                 f.write(x_test[i] + ' ' + str(y_test[i]) + '\n')
 
@@ -245,14 +249,13 @@ class CaltechBirdsDataset(Dataset):
         categories = []
         with open(os.path.join(data_dir, 'label.txt'), 'r') as f:
             for line in f.readlines():
-                categories.append(line.replace('\n','').strip())
-
-        for i, category in enumerate(categories):
-            self.add_class("bird", i+1, category)
+                categories.append(line.replace('\n', '').strip())
 
         img_dir = os.path.join(data_dir, 'jpg')
         gt_dir = os.path.join(data_dir, 'gt')
 
+        class_list = []
+        class_idx = 1
         with open(os.path.join(data_dir, subset+'.txt')) as f:
             for line in tqdm(f):
                 img_name, label = line.replace('\n','').strip().split(' ')
@@ -269,6 +272,12 @@ class CaltechBirdsDataset(Dataset):
                     label=label,
                     mask_path = os.path.join(gt_dir, img_name.replace('jpg','png'))
                 )
+
+                category = categories[label-1]
+                if category not in class_list:
+                    class_list.append(category)
+                    self.add_class("bird", class_idx, category)
+                    class_idx += 1
 
     def load_mask(self, image_id):
         image_info = self.image_info[image_id]
@@ -371,16 +380,15 @@ class HorseDataset(Dataset):
 
 if __name__ == '__main__':
     # dataset_train = CaltechBirdsDataset()
-    # dataset_train.load_birds('D:\DataSet\\birds')
+    # dataset_train.init_data()
+    # dataset_train.load_birds('D:\DataSet\\birds', 'train')
     # dataset_train.prepare()
 
-    import matplotlib.pyplot as plt
-
-    dataset_train = HorseDataset()
-    dataset_train.load_horse('D:\DataSet\\horse', 'train')
-    dataset_train.prepare()
-
-
+    # import matplotlib.pyplot as plt
+    #
+    # dataset_train = HorseDataset()
+    # dataset_train.load_horse('D:\DataSet\\horse', 'train')
+    # dataset_train.prepare()
 
     pass
 

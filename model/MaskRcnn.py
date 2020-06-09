@@ -17,6 +17,10 @@ import re
 import datetime
 from collections import OrderedDict
 
+'''
+keras version adjust
+'''
+
 class MaskRCNN():
     """Encapsulates the Mask RCNN model functionality.
 

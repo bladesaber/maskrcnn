@@ -57,14 +57,16 @@ class BalloonConfig(Config):
 class CaltechBirdsConfig(Config):
     NAME = "bird"
 
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 1
 
-    NUM_CLASSES = 1 + 200
+    NUM_CLASSES = 1 + 2
 
-    STEPS_PER_EPOCH = 500
+    STEPS_PER_EPOCH = 50
 
-    IMAGE_MIN_DIM = 768
-    IMAGE_MAX_DIM = 960
+    IMAGE_MIN_DIM = 704
+    IMAGE_MAX_DIM = 704
+
+    RPN_ANCHOR_SCALES = (64, 128, 256, 384, 512)
 
 class HorseConfig(Config):
     NAME = "horse"
