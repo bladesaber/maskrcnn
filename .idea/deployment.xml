@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData">
+  <component name="PublishConfigData" serverName="root@hz-t2.matpool.com:28872">
     <serverData>
       <paths name="root@hz-t2.matpool.com:26096">
         <serverdata>
@@ -17,6 +17,20 @@
         </serverdata>
       </paths>
       <paths name="root@hz-t2.matpool.com:28814">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/mnt/maskrcnn" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="root@hz-t2.matpool.com:28872">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/mnt/maskrcnn" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="root@hz-t2.matpool.com:29207">
         <serverdata>
           <mappings>
             <mapping deploy="/mnt/maskrcnn" local="$PROJECT_DIR$" />

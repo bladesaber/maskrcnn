@@ -227,7 +227,10 @@ class CaltechBirdsDataset(Dataset):
         y = np.array(scio.loadmat(os.path.join('D:\\DataSet\\birds', 'imagelabels.mat'))['labels'][0])
         x = np.array(os.listdir(os.path.join('D:\\DataSet\\birds', 'jpg')))
 
-        index = np.where(y<=2)
+        start_idx = 10
+        end_idx = 15
+        assert end_idx>start_idx
+        index = np.where((y>start_idx)&(y<=end_idx))
         y = y[index]
         x = x[index]
 
@@ -237,11 +240,11 @@ class CaltechBirdsDataset(Dataset):
         print('train num:', len(x_train), ' test num:', len(x_test))
         with open('D:\\DataSet\\birds\\train.txt', 'w') as f:
             for i in range(len(x_train)):
-                f.write(x_train[i] + ' ' + str(y_train[i]) + '\n')
+                f.write(x_train[i] + ' ' + str(y_train[i]-start_idx) + '\n')
 
         with open('D:\\DataSet\\birds\\val.txt', 'w') as f:
             for i in range(len(x_test)):
-                f.write(x_test[i] + ' ' + str(y_test[i]) + '\n')
+                f.write(x_test[i] + ' ' + str(y_test[i]-start_idx) + '\n')
 
     def load_birds(self, data_dir, subset):
         assert subset in ["train", "val"]
@@ -378,6 +381,64 @@ class HorseDataset(Dataset):
         else:
             super(self.__class__, self).image_reference(image_id)
 
+class NucleusDataset(Dataset):
+    def init_data(self):
+        data_list = os.listdir('D:\DataSet\data-science-bowl-2018\data')
+
+        index = np.arange(0, len(data_list), 1)
+        np.random.shuffle(index)
+
+        train_num = int(len(index) * 0.8)
+        train_index = index[: train_num]
+        val_index = index[train_num:]
+
+        with open('D:\\DataSet\\data-science-bowl-2018\\train.txt', 'w') as f:
+            for i in train_index:
+                f.write(data_list[i] + '\n')
+
+        with open('D:\\DataSet\\data-science-bowl-2018\\val.txt', 'w') as f:
+            for i in val_index:
+                f.write(data_list[i] + '\n')
+
+    def load_nucleus(self, data_dir, subset):
+        self.add_class("nucleus", 1, "nucleus")
+
+        assert subset in ["train", "val"]
+
+        cell_data_dir = os.path.join(data_dir, 'data')
+        with open(os.path.join(data_dir, subset+'.txt')) as f:
+            for line in tqdm(f):
+                img_id = line.replace('\n', '').strip()
+
+                img_dir = os.path.join(cell_data_dir, img_id)
+                img_path = os.path.join(os.path.join(img_dir, 'images'), img_id)+'.png'
+
+                self.add_image(
+                    "nucleus",
+                    image_id=img_id,
+                    mask_dir = os.path.join(img_dir, 'masks'),
+                    path=img_path)
+
+    def load_mask(self, image_id):
+        info = self.image_info[image_id]
+        mask_dir = info['mask_dir']
+
+        mask = []
+        for f in next(os.walk(mask_dir))[2]:
+            if f.endswith(".png"):
+                m = skimage.io.imread(os.path.join(mask_dir, f)).astype(np.bool)
+                mask.append(m)
+        mask = np.stack(mask, axis=-1)
+        return mask, np.ones([mask.shape[-1]], dtype=np.int32)
+
+    def image_reference(self, image_id):
+        """Return the path of the image."""
+        info = self.image_info[image_id]
+        if info["source"] == "nucleus":
+            return info["id"]
+        else:
+            super(self.__class__, self).image_reference(image_id)
+
 if __name__ == '__main__':
     # dataset_train = CaltechBirdsDataset()
     # dataset_train.init_data()
@@ -389,6 +450,11 @@ if __name__ == '__main__':
     # dataset_train = HorseDataset()
     # dataset_train.load_horse('D:\DataSet\\horse', 'train')
     # dataset_train.prepare()
+
+    dataset_train = NucleusDataset()
+    # dataset_train.init_data()
+    dataset_train.load_nucleus('D:\DataSet\data-science-bowl-2018', 'train')
+    dataset_train.prepare()
 
     pass
 
