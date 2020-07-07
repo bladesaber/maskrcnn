@@ -26,12 +26,12 @@ data source: Weizmann Horses(http://www.robots.ox.ac.uk/~vgg/data/bicos/)
 ![image](https://github.com/bladesaber/maskrcnn/blob/master/Picture/horse_predict.PNG) 
 
 mini sample for cell detection:
-data source:https://www.kaggle.com/c/data-science-bowl-2018
+data source:https://www.kaggle.com/c/data-science-bowl-2018  
 
 ![image](https://github.com/bladesaber/maskrcnn/blob/master/Picture/cell_org.PNG) 
 ![image](https://github.com/bladesaber/maskrcnn/blob/master/Picture/cell_label.PNG) 
 ![image](https://github.com/bladesaber/maskrcnn/blob/master/Picture/cell_predict1.PNG)
-
-another example 
+  
+another example  
 ![image](https://github.com/bladesaber/maskrcnn/blob/master/Picture/cell_label2.PNG) 
 ![image](https://github.com/bladesaber/maskrcnn/blob/master/Picture/cell_predict2.PNG) 
