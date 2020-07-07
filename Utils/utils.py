@@ -1,6 +1,6 @@
 import numpy as np
 from distutils.version import LooseVersion
-import  skimage
+import skimage
 import random
 import warnings
 import scipy
